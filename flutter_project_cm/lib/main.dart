@@ -2,8 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
+import 'dart:math';
 
-void main() {
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_project_cm/user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'boxes.dart';
+
+void main() async {
+  await Hive.initFlutter();
+  Hive.registerAdapter(UserAdapter());
+  boxUsers = await Hive.openBox<User>('userBox');
+  await addDefaultUser();
   runApp(const MainApp());
 }
 
@@ -21,8 +31,46 @@ class MainApp extends StatelessWidget {
   }
 }
 
-class LandingPage extends StatelessWidget {
+class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
+
+  @override
+  _LandingPageState createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  void _login() async {
+    String username = _usernameController.text;
+    String password = _passwordController.text;
+
+    bool isValid = await _verifyCredentials(username, password);
+
+    if (isValid) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('loggedInUser', username);
+      Navigator.pushNamed(context, '/hello');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid username or password')),
+      );
+    }
+  }
+
+  Future<bool> _verifyCredentials(String username, String password) async {
+
+    for (var i = 0; i < boxUsers.length; i++) {
+
+      User user = boxUsers.getAt(i)!;
+      if (user.username == username && user.password == password) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +79,29 @@ class LandingPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('LandingPage'),
+            const Text('Login'),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: _usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Username',
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: _passwordController,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                ),
+                obscureText: true,
+              ),
+            ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/hello');
-              },
-              child: const Text('Enter'),
+              onPressed: _login,
+              child: const Text('Login'),
             ),
           ],
         ),
@@ -130,37 +195,61 @@ class MapTab extends StatefulWidget {
 class _MapTabState extends State<MapTab> {
   final PopupController _popupController = PopupController();
 
-  final List<Marker> _markers = [
-    const Marker(
-      width: 80.0,
-      height: 80.0,
-      point: LatLng(40.6405, -8.6538),
-      child: Icon(
-        Icons.location_pin,
-        color: Colors.red,
-        size: 40.0,
-      ),
-      key: ValueKey('marker1'),
-    ),
-    const Marker(
-      width: 80.0,
-      height: 80.0,
-      point: LatLng(40.6415, -8.6548),
-      child: Icon(
-        Icons.location_pin,
-        color: Colors.blue,
-        size: 40.0,
-      ),
-      key: ValueKey('marker2'),
-    ),
-  ];
+  List<Marker> _markers = [];
+
+  Color randomColor() {
+    Random random = Random();
+    return Color.fromARGB(
+      255,
+      random.nextInt(256),
+      random.nextInt(256),
+      random.nextInt(256),
+    );
+  }
+
+  Future<List<Marker>> loadUserMarkers() async {
+    List<Marker> markers = [];
+    
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String loggedInUser = prefs.getString('loggedInUser') ?? '';
+
+    for (var i = 0; i < boxUsers.length; i++) {
+      User user = boxUsers.getAt(i)!;
+      if (user.username == loggedInUser) {
+        markers.add(
+          Marker(
+            key: ValueKey('marker$i'),
+            width: user.width,
+            height: user.height,
+            point: LatLng(user.latitude, user.longitude),
+            child: Icon(
+              Icons.location_on,
+              size: 50.0,
+              color: randomColor(),
+            ),
+          ),
+        );
+      }
+    }
+    return markers;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserMarkers().then((markers) {
+      setState(() {
+        _markers = markers;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return FlutterMap(
       options: MapOptions(
-        initialCenter: LatLng(40.6405, -8.6538), // Coordinates for Aveiro
-        initialZoom: 13.0,
+        initialCenter: const LatLng(40.6405, -8.6538), // Coordinates for Aveiro
+        initialZoom: 17.0,
         onTap: (_, __) => _popupController.hideAllPopups(),
       ),
       children: [
@@ -176,14 +265,7 @@ class _MapTabState extends State<MapTab> {
             markerTapBehavior: MarkerTapBehavior.togglePopup(),
             popupDisplayOptions: PopupDisplayOptions(
               builder: (BuildContext context, Marker marker) {
-                String markerName;
-                if (marker.key == const ValueKey('marker1')) {
-                  markerName = 'Marker 1';
-                } else if (marker.key == const ValueKey('marker2')) {
-                  markerName = 'Marker 2';
-                } else {
-                  markerName = 'Unknown Marker';
-                }
+                String markerName = 'Marker ${_markers.indexOf(marker) + 1}';
                 return Card(
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
