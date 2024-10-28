@@ -20,7 +20,7 @@ class User {
   @HiveField(4)
   double latitude;
 
-  @HiveField(5) 
+  @HiveField(5)
   double longitude;
 
   @HiveField(6)
@@ -34,7 +34,7 @@ Future<void> addDefaultUser() async {
   var box = await Hive.openBox<User>('userBox');
 
   if (box.isEmpty) {
-    box.add(User(username: 'user1', password: 'password1', width: 80.0, height: 80.0, latitude: 40.6405, longitude: -8.6538, lastValue: '27'));
-    box.add(User(username: 'user1', password: 'password1', width: 80.0, height: 80.0, latitude: 40.6415, longitude: -8.6548, lastValue: '27'));
+    box.add(User(username: 'user1', password: 'password1', width: 80.0, height: 80.0, latitude: 40.6405, longitude: -8.6538, lastValue: '1'));
+    box.add(User(username: 'user1', password: 'password1', width: 80.0, height: 80.0, latitude: 40.6415, longitude: -8.6548, lastValue: '2'));
   }
 }

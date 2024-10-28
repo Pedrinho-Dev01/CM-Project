@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
-import 'package:hive_flutter/hive_flutter.dart';
+import 'sensor_graph.dart'; // Importação do arquivo do gráfico
 import 'package:flutter_project_cm/user.dart';
 import 'package:pdf/pdf.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'boxes.dart';
-
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'boxes.dart';
 
 void main() async {
   await Hive.initFlutter();
@@ -64,15 +63,12 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Future<bool> _verifyCredentials(String username, String password) async {
-
     for (var i = 0; i < boxUsers.length; i++) {
-
       User user = boxUsers.getAt(i)!;
       if (user.username == username && user.password == password) {
         return true;
       }
     }
-
     return false;
   }
 
@@ -241,8 +237,6 @@ class MapTab extends StatefulWidget {
 }
 
 class _MapTabState extends State<MapTab> {
-  final PopupController _popupController = PopupController();
-
   List<Marker> _markers = [];
 
   Color randomColor() {
@@ -257,7 +251,7 @@ class _MapTabState extends State<MapTab> {
 
   Future<List<Marker>> loadUserMarkers() async {
     List<Marker> markers = [];
-    
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String loggedInUser = prefs.getString('loggedInUser') ?? '';
 
@@ -270,10 +264,55 @@ class _MapTabState extends State<MapTab> {
             width: user.width,
             height: user.height,
             point: LatLng(user.latitude, user.longitude),
-            child: Icon(
-              Icons.location_on,
-              size: 50.0,
-              color: randomColor(),
+            child: GestureDetector(
+              onTap: () {
+                String lastValue = user.lastValue ?? 'N/A';
+                if (lastValue == '2') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SensorGraph(),
+                    ),
+                  );
+                } else {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        insetPadding: EdgeInsets.zero,
+                        child: Scaffold(
+                          appBar: AppBar(
+                            title: Text('Detalhes do Marcador ${i + 1}'),
+                            backgroundColor: Colors.blue,
+                          ),
+                          body: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Último Valor: $lastValue',
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                                const SizedBox(height: 20),
+                                ElevatedButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Fechar'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+              },
+              child: Icon(
+                Icons.location_on,
+                size: 50.0,
+                color: randomColor(),
+              ),
             ),
           ),
         );
@@ -296,33 +335,16 @@ class _MapTabState extends State<MapTab> {
   Widget build(BuildContext context) {
     return FlutterMap(
       options: MapOptions(
-        initialCenter: const LatLng(40.6405, -8.6538), // Coordinates for Aveiro
+        initialCenter: const LatLng(40.6405, -8.6538), // Coordenadas de Aveiro
         initialZoom: 17.0,
-        onTap: (_, __) => _popupController.hideAllPopups(),
       ),
       children: [
         TileLayer(
           urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
           subdomains: const ['a', 'b', 'c'],
         ),
-        MarkerLayer(markers: _markers),
-        PopupMarkerLayer(
-          options: PopupMarkerLayerOptions(
-            markers: _markers,
-            popupController: _popupController,
-            markerTapBehavior: MarkerTapBehavior.togglePopup(),
-            popupDisplayOptions: PopupDisplayOptions(
-              builder: (BuildContext context, Marker marker) {
-                String markerName = 'Marker ${_markers.indexOf(marker) + 1}';
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(markerName),
-                  ),
-                );
-              },
-            ),
-          ),
+        MarkerLayer(
+          markers: _markers,
         ),
       ],
     );
