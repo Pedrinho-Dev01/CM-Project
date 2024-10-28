@@ -6,8 +6,12 @@ import 'dart:math';
 
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_project_cm/user.dart';
+import 'package:pdf/pdf.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'boxes.dart';
+
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 void main() async {
   await Hive.initFlutter();
@@ -144,8 +148,45 @@ class HelloWorldPage extends StatelessWidget {
   }
 }
 
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
+
+  @override
+  _HomeTabState createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  double temperature = 25.0;
+  double humidity = 60.0;
+  double ph = 7.0;
+  double dielectric = 10.5;
+
+  Future<void> _printPdf() async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Temperature: $temperature°C', style: pw.TextStyle(fontSize: 18)),
+              pw.SizedBox(height: 10),
+              pw.Text('Humidity: $humidity%', style: pw.TextStyle(fontSize: 18)),
+              pw.SizedBox(height: 10),
+              pw.Text('pH: $ph', style: pw.TextStyle(fontSize: 18)),
+              pw.SizedBox(height: 10),
+              pw.Text('Dielectric: $dielectric', style: pw.TextStyle(fontSize: 18)),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,28 +196,35 @@ class HomeTab extends StatelessWidget {
         children: [
           Expanded(
             child: ListView(
-              children: const [
+              children: [
                 ListTile(
-                  leading: Icon(Icons.thermostat),
-                  title: Text('Temperature'),
-                  subtitle: Text('25°C'),
+                  leading: const Icon(Icons.thermostat),
+                  title: const Text('Temperature'),
+                  subtitle: Text('$temperature°C'),
                 ),
                 ListTile(
-                  leading: Icon(Icons.water_drop),
-                  title: Text('Humidity'),
-                  subtitle: Text('60%'),
+                  leading: const Icon(Icons.water_drop),
+                  title: const Text('Humidity'),
+                  subtitle: Text('$humidity%'),
                 ),
                 ListTile(
-                  leading: Icon(Icons.science),
-                  title: Text('pH'),
-                  subtitle: Text('7.0'),
+                  leading: const Icon(Icons.science),
+                  title: const Text('pH'),
+                  subtitle: Text('$ph'),
                 ),
                 ListTile(
-                  leading: Icon(Icons.electrical_services),
-                  title: Text('Dielectric'),
-                  subtitle: Text('10.5'),
+                  leading: const Icon(Icons.electrical_services),
+                  title: const Text('Dielectric'),
+                  subtitle: Text('$dielectric'),
                 ),
               ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: _printPdf,
+              child: const Text('Print PDF'),
             ),
           ),
         ],

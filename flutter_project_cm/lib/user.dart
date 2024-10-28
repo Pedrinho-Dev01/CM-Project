@@ -35,6 +35,6 @@ Future<void> addDefaultUser() async {
 
   if (box.isEmpty) {
     box.add(User(username: 'user1', password: 'password1', width: 80.0, height: 80.0, latitude: 40.6405, longitude: -8.6538, lastValue: '27'));
-    box.add(User(username: 'user2', password: 'password2', width: 80.0, height: 80.0, latitude: 40.6415, longitude: -8.6548, lastValue: '27'));
+    box.add(User(username: 'user1', password: 'password1', width: 80.0, height: 80.0, latitude: 40.6415, longitude: -8.6548, lastValue: '27'));
   }
 }
