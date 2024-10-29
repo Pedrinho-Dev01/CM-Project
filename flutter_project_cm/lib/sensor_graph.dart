@@ -153,11 +153,22 @@ class _SensorGraphState extends State<SensorGraph> {
     print('Messages cleared');
   }
 
+  void _stopReading() {
+    client.disconnect();
+    final currentReadings = {
+      'temperature': temperatureReadings.isNotEmpty ? temperatureReadings.last.y : 0.0,
+      'humidity': humidityReadings.isNotEmpty ? humidityReadings.last.y : 0.0,
+      'pressure': pressureReadings.isNotEmpty ? pressureReadings.last.y : 0.0,
+      'lux': luxReadings.isNotEmpty ? luxReadings.last.y : 0.0,
+    };
+    Navigator.of(context).pop(currentReadings);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sensor Readings for ID ${widget.id}'),
+        title: Text('Sensor ${widget.id}'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -167,6 +178,11 @@ class _SensorGraphState extends State<SensorGraph> {
             ),
             onPressed: () {},
             tooltip: isConnected ? 'Connected' : 'Disconnected',
+          ),
+          IconButton(
+            icon: const Icon(Icons.stop, color: Colors.white),
+            onPressed: _stopReading,
+            tooltip: 'Stop Reading',
           ),
           IconButton(
             icon: const Icon(Icons.cleaning_services, color: Colors.white),

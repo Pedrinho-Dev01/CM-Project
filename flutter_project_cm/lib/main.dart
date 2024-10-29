@@ -13,6 +13,10 @@ import 'package:printing/printing.dart';
 import 'boxes.dart';
 import 'mqtt_service.dart';
 
+double temperature = 0.0;
+double humidity = 0.0;
+double pressure = 0.0;
+double lux = 0.0;
 void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(UserAdapter());
@@ -285,10 +289,6 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  double temperature = 0.0;
-  double humidity = 0.0;
-  double pressure = 0.0;
-  double lux = 0.0;
 
   Future<void> _printPdf() async {
     final pdf = pw.Document();
@@ -426,7 +426,14 @@ class _MapTabState extends State<MapTab> {
                     MaterialPageRoute(
                       builder: (context) => SensorGraph(id: sensorId),
                     ),
-                  );
+                  ).then((result) {
+                    if (result != null) {
+                      temperature = result['temperature'];
+                      humidity = result['humidity'];
+                      pressure = result['pressure'];
+                      lux = result['lux'];
+                    }
+                  });
                 } else {
                   showDialog(
                     context: context,
