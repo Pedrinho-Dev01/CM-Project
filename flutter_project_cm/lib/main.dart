@@ -112,6 +112,7 @@ class LandingPage extends StatefulWidget {
 class _LandingPageState extends State<LandingPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _obscurePassword = true;
 
   void _login() async {
     String username = _usernameController.text;
@@ -205,15 +206,28 @@ class _LandingPageState extends State<LandingPage> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8.0),
                                 ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                ),
                               ),
-                              obscureText: true,
+                              obscureText: _obscurePassword,
                             ),
                             const SizedBox(height: 16.0),
                             OutlinedButton(
                               onPressed: _login,
                               child: const Text('Login'),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16.0, horizontal: 32.0),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8.0),
                                 ),
@@ -232,7 +246,9 @@ class _LandingPageState extends State<LandingPage> {
             top: 16,
             right: 16,
             child: IconButton(
-              icon: Icon(widget.themeMode == ThemeMode.light ? Icons.wb_sunny : Icons.nights_stay),
+              icon: Icon(widget.themeMode == ThemeMode.light
+                  ? Icons.wb_sunny
+                  : Icons.nights_stay),
               onPressed: widget.toggleThemeMode,
             ),
           ),
@@ -241,6 +257,7 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 }
+
 
 class HelloWorldPage extends StatelessWidget {
   final VoidCallback toggleThemeMode;
@@ -303,9 +320,9 @@ class _HomeTabState extends State<HomeTab> {
               pw.SizedBox(height: 10),
               pw.Text('Humidity: $humidity%', style: pw.TextStyle(fontSize: 18)),
               pw.SizedBox(height: 10),
-              pw.Text('pH: $pressure', style: pw.TextStyle(fontSize: 18)),
+              pw.Text('Pressure: $pressure', style: pw.TextStyle(fontSize: 18)),
               pw.SizedBox(height: 10),
-              pw.Text('Dielectric: $lux', style: pw.TextStyle(fontSize: 18)),
+              pw.Text('Lux: $lux', style: pw.TextStyle(fontSize: 18)),
             ],
           );
         },
