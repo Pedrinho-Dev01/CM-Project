@@ -20,22 +20,85 @@ void main() async {
   runApp(const MainApp());
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
+
+  @override
+  _MainAppState createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  ThemeMode _themeMode = ThemeMode.dark;
+  String _loggedInUser = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemeMode();
+    _loadLoggedInUser();
+  }
+
+  Future<void> _loadThemeMode() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? themeMode = prefs.getString('themeMode');
+    setState(() {
+      if (themeMode == 'light') {
+        _themeMode = ThemeMode.light;
+      } else if (themeMode == 'dark') {
+        _themeMode = ThemeMode.dark;
+      } else {
+        _themeMode = ThemeMode.system;
+      }
+    });
+  }
+
+  Future<void> _loadLoggedInUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _loggedInUser = prefs.getString('loggedInUser') ?? '';
+      print('Logged in user: $_loggedInUser'); // Debugging statement
+    });
+  }
+
+  Future<void> _toggleThemeMode() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (_themeMode == ThemeMode.light) {
+        _themeMode = ThemeMode.dark;
+        prefs.setString('themeMode', 'dark');
+      } else {
+        _themeMode = ThemeMode.light;
+        prefs.setString('themeMode', 'light');
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: const LandingPage(),
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: _themeMode,
+      home: LandingPage(
+        toggleThemeMode: _toggleThemeMode,
+        themeMode: _themeMode,
+      ),
       routes: {
-        '/hello': (context) => const HelloWorldPage(),
+        '/hello': (context) => HelloWorldPage(
+          toggleThemeMode: _toggleThemeMode,
+          themeMode: _themeMode,
+          user: _loggedInUser,
+        ),
       },
     );
   }
 }
 
 class LandingPage extends StatefulWidget {
-  const LandingPage({super.key});
+  final VoidCallback toggleThemeMode;
+  final ThemeMode themeMode;
+
+  const LandingPage({super.key, required this.toggleThemeMode, required this.themeMode});
 
   @override
   _LandingPageState createState() => _LandingPageState();
@@ -75,46 +138,115 @@ class _LandingPageState extends State<LandingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Login'),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
-                ),
+      body: Stack(
+        children: [
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Farm Sensor App',
+                    style: TextStyle(
+                      fontSize: 32.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16.0),
+                  Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.3),
+                          spreadRadius: 1,
+                          blurRadius: 4,
+                        ),
+                      ],
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
+                    child: Card(
+                      elevation: 8.0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16.0),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 24.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16.0),
+                            TextFormField(
+                              controller: _usernameController,
+                              decoration: InputDecoration(
+                                labelText: 'Username',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16.0),
+                            TextFormField(
+                              controller: _passwordController,
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                              ),
+                              obscureText: true,
+                            ),
+                            const SizedBox(height: 16.0),
+                            OutlinedButton(
+                              onPressed: _login,
+                              child: const Text('Login'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                ),
-                obscureText: true,
-              ),
+          ),
+          Positioned(
+            top: 16,
+            right: 16,
+            child: IconButton(
+              icon: Icon(widget.themeMode == ThemeMode.light ? Icons.wb_sunny : Icons.nights_stay),
+              onPressed: widget.toggleThemeMode,
             ),
-            ElevatedButton(
-              onPressed: _login,
-              child: const Text('Login'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class HelloWorldPage extends StatelessWidget {
-  const HelloWorldPage({super.key});
+  final VoidCallback toggleThemeMode;
+  final ThemeMode themeMode;
+  final String user;
+
+  const HelloWorldPage({super.key, required this.toggleThemeMode, required this.themeMode, required this.user});
 
   @override
   Widget build(BuildContext context) {
+    print('HelloWorldPage user: $user'); // Debugging statement
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -125,7 +257,13 @@ class HelloWorldPage extends StatelessWidget {
               Tab(icon: Icon(Icons.map), text: 'Map'),
             ],
           ),
-          title: const Text('Hello World Page'),
+          title: Text('Welcome $user'),
+          actions: [
+            IconButton(
+              icon: Icon(themeMode == ThemeMode.light ? Icons.wb_sunny : Icons.nights_stay),
+              onPressed: toggleThemeMode,
+            ),
+          ],
         ),
         body: const TabBarView(
           children: [
