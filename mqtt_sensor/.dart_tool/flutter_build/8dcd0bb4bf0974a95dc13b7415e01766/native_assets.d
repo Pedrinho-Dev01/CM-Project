@@ -1,1 +1,0 @@
- C:\\Users\\dpedr\\Desktop\\CM-Project\\mqtt_sensor\\.dart_tool\\flutter_build\\8dcd0bb4bf0974a95dc13b7415e01766\\native_assets.yaml: 
