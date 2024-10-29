@@ -64,8 +64,8 @@ class _LandingPageState extends State<LandingPage> {
 
   Future<bool> _verifyCredentials(String username, String password) async {
     for (var i = 0; i < boxUsers.length; i++) {
-      User user = boxUsers.getAt(i)!;
-      if (user.username == username && user.password == password) {
+      User? user = boxUsers.getAt(i);
+      if (user != null && user.username == username && user.password == password) {
         return true;
       }
     }
@@ -116,19 +116,13 @@ class HelloWorldPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 2,
       child: Scaffold(
         appBar: AppBar(
           bottom: const TabBar(
             tabs: [
-              Tab(
-                icon: Icon(Icons.home),
-                text: 'Home',
-              ),
-              Tab(
-                icon: Icon(Icons.map),
-                text: 'Map',
-              ),
+              Tab(icon: Icon(Icons.home), text: 'Home'),
+              Tab(icon: Icon(Icons.map), text: 'Map'),
             ],
           ),
           title: const Text('Hello World Page'),
@@ -256,8 +250,8 @@ class _MapTabState extends State<MapTab> {
     String loggedInUser = prefs.getString('loggedInUser') ?? '';
 
     for (var i = 0; i < boxUsers.length; i++) {
-      User user = boxUsers.getAt(i)!;
-      if (user.username == loggedInUser) {
+      User? user = boxUsers.getAt(i);
+      if (user != null && user.username == loggedInUser) {
         markers.add(
           Marker(
             key: ValueKey('marker$i'),
@@ -267,11 +261,13 @@ class _MapTabState extends State<MapTab> {
             child: GestureDetector(
               onTap: () {
                 String lastValue = user.lastValue ?? 'N/A';
-                if (lastValue == '2') {
+                int sensorId = int.tryParse(lastValue) ?? 0;
+
+                if (sensorId == 1 || sensorId == 2) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SensorGraph(),
+                      builder: (context) => SensorGraph(id: sensorId),
                     ),
                   );
                 } else {
@@ -335,7 +331,7 @@ class _MapTabState extends State<MapTab> {
   Widget build(BuildContext context) {
     return FlutterMap(
       options: MapOptions(
-        initialCenter: const LatLng(40.6405, -8.6538), // Coordenadas de Aveiro
+        initialCenter: const LatLng(40.6405, -8.6538),
         initialZoom: 17.0,
       ),
       children: [
