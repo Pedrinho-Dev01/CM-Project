@@ -11,6 +11,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'boxes.dart';
+import 'mqtt_service.dart';
 
 void main() async {
   await Hive.initFlutter();
@@ -284,36 +285,27 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  double temperature = 25.0;
-  double humidity = 60.0;
-  double ph = 7.0;
-  double dielectric = 10.5;
+  double temperature = 0.0;
+  double humidity = 0.0;
+  double pressure = 0.0;
+  double lux = 0.0;
 
-  Future<void> _printPdf() async {
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text('Temperature: $temperature°C', style: pw.TextStyle(fontSize: 18)),
-              pw.SizedBox(height: 10),
-              pw.Text('Humidity: $humidity%', style: pw.TextStyle(fontSize: 18)),
-              pw.SizedBox(height: 10),
-              pw.Text('pH: $ph', style: pw.TextStyle(fontSize: 18)),
-              pw.SizedBox(height: 10),
-              pw.Text('Dielectric: $dielectric', style: pw.TextStyle(fontSize: 18)),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
+  @override
+  void initState() {
+    super.initState();
+    mqttService.sensorStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          if (data['id'] == 1) {
+            temperature = data['temperature'] ?? temperature;
+            humidity = data['humidity'] ?? humidity;
+            pressure = data['pressure'] ?? pressure;
+          } else if (data['id'] == 2) {
+            lux = data['lux'] ?? lux;
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -336,23 +328,16 @@ class _HomeTabState extends State<HomeTab> {
                   subtitle: Text('$humidity%'),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.science),
-                  title: const Text('pH'),
-                  subtitle: Text('$ph'),
+                  leading: const Icon(Icons.compress),
+                  title: const Text('Pressure'),
+                  subtitle: Text('$pressure hPa'),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.electrical_services),
-                  title: const Text('Dielectric'),
-                  subtitle: Text('$dielectric'),
+                  leading: const Icon(Icons.light_mode),
+                  title: const Text('Lux'),
+                  subtitle: Text('$lux lx'),
                 ),
               ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: _printPdf,
-              child: const Text('Print PDF'),
             ),
           ),
         ],
@@ -360,6 +345,8 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 }
+
+
 
 class MapTab extends StatefulWidget {
   const MapTab({super.key});
