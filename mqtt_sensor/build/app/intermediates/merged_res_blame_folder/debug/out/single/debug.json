@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.example.mqtt_sensor.app-merged_res-26:/mipmap-mdpi_app.png.flat",
+        "source": "com.example.mqtt_sensor.app-main-21:/mipmap-mdpi/app.png"
+    },
+    {
+        "merged": "com.example.mqtt_sensor.app-merged_res-26:/mipmap-xxxhdpi_app.png.flat",
+        "source": "com.example.mqtt_sensor.app-main-21:/mipmap-xxxhdpi/app.png"
+    },
+    {
+        "merged": "com.example.mqtt_sensor.app-merged_res-26:/mipmap-xhdpi_app.png.flat",
+        "source": "com.example.mqtt_sensor.app-main-21:/mipmap-xhdpi/app.png"
+    },
+    {
+        "merged": "com.example.mqtt_sensor.app-merged_res-26:/mipmap-xxhdpi_app.png.flat",
+        "source": "com.example.mqtt_sensor.app-main-21:/mipmap-xxhdpi/app.png"
+    },
+    {
+        "merged": "com.example.mqtt_sensor.app-merged_res-26:/drawable-v21_launch_background.xml.flat",
+        "source": "com.example.mqtt_sensor.app-main-21:/drawable-v21/launch_background.xml"
+    },
+    {
+        "merged": "com.example.mqtt_sensor.app-merged_res-26:/mipmap-hdpi_app.png.flat",
+        "source": "com.example.mqtt_sensor.app-main-21:/mipmap-hdpi/app.png"
+    }
+]

@@ -290,6 +290,33 @@ class _HomeTabState extends State<HomeTab> {
   double pressure = 0.0;
   double lux = 0.0;
 
+  Future<void> _printPdf() async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Temperature: $temperature°C', style: pw.TextStyle(fontSize: 18)),
+              pw.SizedBox(height: 10),
+              pw.Text('Humidity: $humidity%', style: pw.TextStyle(fontSize: 18)),
+              pw.SizedBox(height: 10),
+              pw.Text('pH: $pressure', style: pw.TextStyle(fontSize: 18)),
+              pw.SizedBox(height: 10),
+              pw.Text('Dielectric: $lux', style: pw.TextStyle(fontSize: 18)),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -340,13 +367,18 @@ class _HomeTabState extends State<HomeTab> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: _printPdf,
+              child: const Text('Print PDF'),
+            ),
+          ),
         ],
       ),
     );
   }
 }
-
-
 
 class MapTab extends StatefulWidget {
   const MapTab({super.key});
