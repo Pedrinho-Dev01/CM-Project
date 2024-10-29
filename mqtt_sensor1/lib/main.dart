@@ -85,7 +85,26 @@ class _MQTTExampleState extends State<MQTTExample> {
     } catch (e) {
       print('Error: $e');
       client.disconnect();
+      _showConnectionError();
     }
+  }
+
+  void _showConnectionError() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Connection Error'),
+          content: Text('Failed to connect to MQTT broker.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _onConnected() {
@@ -125,14 +144,16 @@ class _MQTTExampleState extends State<MQTTExample> {
     print('Received message: $message from topic: ${event[0].topic}>');
   }
 
-  double _getRandomValue(double base, double variation) {
-    return base + (_random.nextDouble() * variation * 2) - variation;
+  double _getRandomValue(double min, double max) {
+    return min + (_random.nextDouble() * (max - min));
   }
 
+
   void _publishSensorData() {
-    final humidity = _getRandomValue(40.0, 60.0); // Range 40-60%
-    final temperature = _getRandomValue(17.0, 25.0); // Range 17-27°C
-    final pressure = _getRandomValue(1010.25, 1020.0); // Range around standard atmospheric pressure
+    final humidity = _getRandomValue(40, 60); // Range 40-60%
+    final temperature = _getRandomValue(17, 25); // Range 17-25°C
+    final pressure = _getRandomValue(1010, 1020); // Range 1010-1020 hPa
+
 
     final messageJson = jsonEncode({
       'type': 'sensor_reading',
@@ -171,7 +192,17 @@ class _MQTTExampleState extends State<MQTTExample> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Simulated Sensor 1'),
+        title: Row(
+          children: [
+            const Text('Simulated Sensor 1'),
+            Spacer(),
+            IconButton(
+              icon: Icon(Icons.refresh),
+              color: Colors.white,
+              onPressed: _connectMQTT,
+            ),
+          ],
+        ),
         centerTitle: true,
       ),
       body: Center(
@@ -191,24 +222,29 @@ class _MQTTExampleState extends State<MQTTExample> {
                 ),
               ),
               const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _stopTimer,
-                icon: const Icon(Icons.stop_circle_outlined, color: Colors.redAccent),
-                label: const Text('Stop'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[100],
-                  foregroundColor: Colors.red[900],
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _clearMessages,
-                icon: const Icon(Icons.cleaning_services, color: Colors.blueAccent),
-                label: const Text('Clean'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[100],
-                  foregroundColor: Colors.blue[900],
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _stopTimer,
+                    icon: const Icon(Icons.stop_circle_outlined, color: Colors.redAccent),
+                    label: const Text('Stop'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[100],
+                      foregroundColor: Colors.red[900],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton.icon(
+                    onPressed: _clearMessages,
+                    icon: const Icon(Icons.cleaning_services, color: Colors.blueAccent),
+                    label: const Text('Clean'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[100],
+                      foregroundColor: Colors.blue[900],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 30),
               Expanded(

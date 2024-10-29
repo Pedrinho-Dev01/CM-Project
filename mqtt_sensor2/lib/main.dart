@@ -81,10 +81,31 @@ class _MQTTExampleState extends State<MQTTExample> {
 
     try {
       await client.connect();
-      client.updates!.listen(_onMessage);
+      client.updates?.listen(_onMessage);
     } catch (e) {
       print('Error: $e');
       client.disconnect();
+      _showConnectionError();
+    }
+  }
+
+  void _showConnectionError() {
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Connection Error'),
+            content: Text('Failed to connect to the MQTT broker. Please check your connection and try again.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
     }
   }
 
@@ -126,26 +147,29 @@ class _MQTTExampleState extends State<MQTTExample> {
   }
 
   double _getRandomLux(double baseLux, double variation) {
-    // Retorna um valor de lux aleatório em torno do valor base
     return baseLux + (_random.nextDouble() * variation * 2) - variation;
   }
 
   void _publishLuxValue(double luxValue, int id) {
-    final messageJson = jsonEncode({
-      'type': 'sensor_reading',
-      'id': id,
-      'lux': luxValue,
-    });
+    if (client.connectionStatus?.state == MqttConnectionState.connected) {
+      final messageJson = jsonEncode({
+        'type': 'sensor_reading',
+        'id': id,
+        'lux': luxValue,
+      });
 
-    final builder = MqttClientPayloadBuilder();
-    builder.addString(messageJson);
-    client.publishMessage('test/flutter/topic', MqttQos.atLeastOnce, builder.payload!);
+      final builder = MqttClientPayloadBuilder();
+      builder.addString(messageJson);
+      client.publishMessage('test/flutter/topic', MqttQos.atLeastOnce, builder.payload!);
+    } else {
+      print("Can't publish, not connected to the broker.");
+    }
   }
 
   void _simulateDay() {
     _stopTimer();
     _timer = Timer.periodic(Duration(seconds: 2), (timer) {
-      double luxValue = _getRandomLux(750, 50); // Variação de ±50 ao redor de 750
+      double luxValue = _getRandomLux(750, 50);
       _publishLuxValue(luxValue, 2);
     });
   }
@@ -153,7 +177,7 @@ class _MQTTExampleState extends State<MQTTExample> {
   void _simulateNight() {
     _stopTimer();
     _timer = Timer.periodic(Duration(seconds: 2), (timer) {
-      double luxValue = _getRandomLux(0.5, 0.1); // Variação de ±0.1 ao redor de 0.5
+      double luxValue = _getRandomLux(0.5, 0.1);
       _publishLuxValue(luxValue, 2);
     });
   }
@@ -175,7 +199,17 @@ class _MQTTExampleState extends State<MQTTExample> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Simulated Light Sensor 2'),
+        title: Row(
+          children: [
+            const Text('Simulated Light Sensor 2'),
+            Spacer(),
+            IconButton(
+              icon: Icon(Icons.refresh),
+              color: Colors.white,
+              onPressed: _connectMQTT,
+            ),
+          ],
+        ),
         centerTitle: true,
       ),
       body: Center(
@@ -188,7 +222,7 @@ class _MQTTExampleState extends State<MQTTExample> {
               ElevatedButton.icon(
                 onPressed: _simulateDay,
                 icon: const Icon(Icons.wb_sunny_outlined, color: Colors.orangeAccent),
-                label: const Text('Simulate Day'), // (750 lux ± 50)
+                label: const Text('Simulate Day'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo[100],
                   foregroundColor: Colors.indigo[900],
@@ -198,7 +232,7 @@ class _MQTTExampleState extends State<MQTTExample> {
               ElevatedButton.icon(
                 onPressed: _simulateNight,
                 icon: const Icon(Icons.nightlight_round_outlined, color: Colors.indigo),
-                label: const Text('Simulate Night'), // (0.5 lux ± 0.1)
+                label: const Text('Simulate Night'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo[100],
                   foregroundColor: Colors.indigo[900],
