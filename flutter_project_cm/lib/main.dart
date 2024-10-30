@@ -449,6 +449,11 @@ class _MapTabState extends State<MapTab> {
                       humidity = result['humidity'];
                       pressure = result['pressure'];
                       lux = result['lux'];
+
+                      user.temperature = temperature;
+                      user.humidity = humidity;
+                      user.pressure = pressure;
+                      user.lux = lux;
                     }
                   });
                 } else {

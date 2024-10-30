@@ -26,7 +26,29 @@ class User {
   @HiveField(6)
   String lastValue;
 
-  User({required this.username, required this.password, required this.width, required this.height, required this.latitude, required this.longitude, required this.lastValue});
+  @HiveField(7)
+  double temperature;
+
+  @HiveField(8)
+  double humidity;
+
+  @HiveField(9)
+  double pressure;
+
+  @HiveField(10)
+  double lux;
+
+  User({required this.username, 
+        required this.password, 
+        required this.width, 
+        required this.height, 
+        required this.latitude, 
+        required this.longitude, 
+        required this.lastValue,
+        this.temperature = 0.0,
+        this.humidity = 0.0,
+        this.pressure = 0.0,
+        this.lux = 0.0});
 }
 
 Future<void> addDefaultUser() async {
