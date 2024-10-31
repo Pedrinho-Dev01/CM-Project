@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'dart:math';
 
 import 'sensor_graph.dart'; // Importação do arquivo do gráfico
@@ -13,16 +14,35 @@ import 'package:printing/printing.dart';
 import 'boxes.dart';
 import 'mqtt_service.dart';
 
-double temperature = 0.0;
-double humidity = 0.0;
-double pressure = 0.0;
-double lux = 0.0;
 void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(UserAdapter());
   boxUsers = await Hive.openBox<User>('userBox');
   await addDefaultUser();
-  runApp(const MainApp());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SensorData()),
+      ],
+      child: const MainApp(),
+    ),
+  );
+}
+
+class SensorData with ChangeNotifier {
+  double temperature = 0.0;
+  double humidity = 0.0;
+  double pressure = 0.0;
+  double lux = 0.0;
+
+  void updateSensorData(double newTemperature, double newHumidity, double newPressure, double newLux) {
+    temperature = newTemperature;
+    humidity = newHumidity;
+    pressure = newPressure;
+    lux = newLux;
+    notifyListeners();
+  }
 }
 
 class MainApp extends StatefulWidget {
@@ -257,9 +277,7 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 }
-
-
-class HelloWorldPage extends StatelessWidget {
+class HelloWorldPage extends StatefulWidget {
   final VoidCallback toggleThemeMode;
   final ThemeMode themeMode;
   final String user;
@@ -267,8 +285,37 @@ class HelloWorldPage extends StatelessWidget {
   const HelloWorldPage({super.key, required this.toggleThemeMode, required this.themeMode, required this.user});
 
   @override
+  _HelloWorldPageState createState() => _HelloWorldPageState();
+}
+
+class _HelloWorldPageState extends State<HelloWorldPage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Subscrição no stream do MQTT para atualizar o SensorData
+    mqttService.sensorStream.listen((data) {
+      final sensorData = Provider.of<SensorData>(context, listen: false);
+      if (data['id'] == 1) {
+        sensorData.updateSensorData(
+          data['temperature'] ?? sensorData.temperature,
+          data['humidity'] ?? sensorData.humidity,
+          data['pressure'] ?? sensorData.pressure,
+          sensorData.lux,
+        );
+      } else if (data['id'] == 2) {
+        sensorData.updateSensorData(
+          sensorData.temperature,
+          sensorData.humidity,
+          sensorData.pressure,
+          data['lux'] ?? sensorData.lux,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    print('HelloWorldPage user: $user'); // Debugging statement
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -279,11 +326,11 @@ class HelloWorldPage extends StatelessWidget {
               Tab(icon: Icon(Icons.map), text: 'Map'),
             ],
           ),
-          title: Text('Welcome $user'),
+          title: Text('Welcome ${widget.user}'),
           actions: [
             IconButton(
-              icon: Icon(themeMode == ThemeMode.light ? Icons.wb_sunny : Icons.nights_stay),
-              onPressed: toggleThemeMode,
+              icon: Icon(widget.themeMode == ThemeMode.light ? Icons.wb_sunny : Icons.nights_stay),
+              onPressed: widget.toggleThemeMode,
             ),
           ],
         ),
@@ -298,17 +345,12 @@ class HelloWorldPage extends StatelessWidget {
   }
 }
 
-class HomeTab extends StatefulWidget {
+class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
-  @override
-  _HomeTabState createState() => _HomeTabState();
-}
-
-class _HomeTabState extends State<HomeTab> {
-
-  Future<void> _printPdf() async {
+  Future<void> _printPdf(BuildContext context) async {
     final pdf = pw.Document();
+    final sensorData = Provider.of<SensorData>(context, listen: false);
 
     pdf.addPage(
       pw.Page(
@@ -316,13 +358,13 @@ class _HomeTabState extends State<HomeTab> {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('Temperature: $temperature°C', style: pw.TextStyle(fontSize: 18)),
+              pw.Text('Temperature: ${sensorData.temperature}°C', style: pw.TextStyle(fontSize: 18)),
               pw.SizedBox(height: 10),
-              pw.Text('Humidity: $humidity%', style: pw.TextStyle(fontSize: 18)),
+              pw.Text('Humidity: ${sensorData.humidity}%', style: pw.TextStyle(fontSize: 18)),
               pw.SizedBox(height: 10),
-              pw.Text('Pressure: $pressure', style: pw.TextStyle(fontSize: 18)),
+              pw.Text('Pressure: ${sensorData.pressure}', style: pw.TextStyle(fontSize: 18)),
               pw.SizedBox(height: 10),
-              pw.Text('Lux: $lux', style: pw.TextStyle(fontSize: 18)),
+              pw.Text('Lux: ${sensorData.lux}', style: pw.TextStyle(fontSize: 18)),
             ],
           );
         },
@@ -335,64 +377,50 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    mqttService.sensorStream.listen((data) {
-      if (mounted) {
-        setState(() {
-          if (data['id'] == 1) {
-            temperature = data['temperature'] ?? temperature;
-            humidity = data['humidity'] ?? humidity;
-            pressure = data['pressure'] ?? pressure;
-          } else if (data['id'] == 2) {
-            lux = data['lux'] ?? lux;
-          }
-        });
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            child: ListView(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.thermostat),
-                  title: const Text('Temperature'),
-                  subtitle: Text('$temperature°C'),
+    return Consumer<SensorData>(
+      builder: (context, sensorData, child) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: ListView(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.thermostat),
+                      title: const Text('Temperature'),
+                      subtitle: Text('${sensorData.temperature}°C'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.water_drop),
+                      title: const Text('Humidity'),
+                      subtitle: Text('${sensorData.humidity}%'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.compress),
+                      title: const Text('Pressure'),
+                      subtitle: Text('${sensorData.pressure} hPa'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.light_mode),
+                      title: const Text('Lux'),
+                      subtitle: Text('${sensorData.lux} lx'),
+                    ),
+                  ],
                 ),
-                ListTile(
-                  leading: const Icon(Icons.water_drop),
-                  title: const Text('Humidity'),
-                  subtitle: Text('$humidity%'),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: () => _printPdf(context),
+                  child: const Text('Print PDF'),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.compress),
-                  title: const Text('Pressure'),
-                  subtitle: Text('$pressure hPa'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.light_mode),
-                  title: const Text('Lux'),
-                  subtitle: Text('$lux lx'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: _printPdf,
-              child: const Text('Print PDF'),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -445,15 +473,17 @@ class _MapTabState extends State<MapTab> {
                     ),
                   ).then((result) {
                     if (result != null) {
-                      temperature = result['temperature'];
-                      humidity = result['humidity'];
-                      pressure = result['pressure'];
-                      lux = result['lux'];
+                      Provider.of<SensorData>(context, listen: false).updateSensorData(
+                        result['temperature'],
+                        result['humidity'],
+                        result['pressure'],
+                        result['lux'],
+                      );
 
-                      user.temperature = temperature;
-                      user.humidity = humidity;
-                      user.pressure = pressure;
-                      user.lux = lux;
+                      user.temperature = result['temperature'];
+                      user.humidity = result['humidity'];
+                      user.pressure = result['pressure'];
+                      user.lux = result['lux'];
                     }
                   });
                 } else {
