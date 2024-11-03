@@ -484,6 +484,8 @@ class _MapTabState extends State<MapTab> {
                       user.humidity = result['humidity'];
                       user.pressure = result['pressure'];
                       user.lux = result['lux'];
+                      
+                      boxUsers.putAt(i, user);
                     }
                   });
                 } else {
